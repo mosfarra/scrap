@@ -1,38 +1,42 @@
-name: Scrape MEF y publicar JSON
-permissions:
-  contents: write
+name: Scrape MEF
 
+# Solo disparador manual, para que lo veas inmediatamente
 on:
-  schedule:
-    - cron: '0 * * * *'
   workflow_dispatch:
 
 jobs:
   scrape:
     runs-on: ubuntu-latest
 
+    permissions:
+      contents: write  # para poder pushear data.json
+
     steps:
-    - uses: actions/checkout@v3
-      with:
-        persist-credentials: true
-        fetch-depth: 0
+      - name: Checkout repo
+        uses: actions/checkout@v3
+        with:
+          persist-credentials: true
+          fetch-depth: 0
 
-    - uses: actions/setup-python@v4
-      with: python-version: '3.x'
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
 
-    - run: python -m pip install requests beautifulsoup4
+      - name: Install deps
+        run: pip install requests beautifulsoup4
 
-    - name: Ejecutar scraper
-      run: python scrape_mef.py
+      - name: Run scraper
+        run: python scrape_mef.py
 
-    - name: Commit & Push data.json
-      run: |
-        git config user.name "github-actions"
-        git config user.email "actions@github.com"
-        git add data.json
-        if ! git diff --quiet --cached; then
-          git commit -m "Actualiza data.json $(date -u)"
-          git push
-        else
-          echo "Sin cambios"
-        fi
+      - name: Commit & Push data.json
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add data.json
+          if ! git diff --quiet --cached; then
+            git commit -m "Actualiza data.json $(date -u)"
+            git push
+          else
+            echo "No hay cambios en data.json"
+          fi
