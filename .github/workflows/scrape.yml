@@ -1,12 +1,12 @@
-name: Scrape MEF y actualizar JSON
+name: Scrape MEF y actualizar data.json
 
 on:
   schedule:
-    - cron: '0 * * * *'        # cada hora
-  workflow_dispatch:           # también lo puedes lanzar manualmente
+    - cron: '0 * * * *'      # cada hora
+  workflow_dispatch:         # también manual
 
 jobs:
-  scrape:
+  build:
     runs-on: ubuntu-latest
 
     steps:
@@ -23,9 +23,9 @@ jobs:
 
     - name: Ejecutar scraper
       run: |
-        python scrap.py
+        python scrape_mef.py
 
-    - name: Commit y push data.json
+    - name: Commit & Push data.json
       run: |
         git config user.name "github-actions"
         git config user.email "actions@github.com"
