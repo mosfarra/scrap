@@ -3,7 +3,7 @@ name: Scrape MEF y actualizar data.json
 on:
   schedule:
     - cron: '0 * * * *'      # cada hora
-  workflow_dispatch:         # también manual
+  workflow_dispatch:
 
 jobs:
   build:
