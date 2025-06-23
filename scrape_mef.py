@@ -3,7 +3,7 @@ import requests
 from bs4 import BeautifulSoup
 import json
 
-# 1) URL final con todos los filtros ya aplicados
+# URL final ya con todos los filtros
 URL = (
     "https://apps5.mineco.gob.pe/transparencia/Navegador/"
     "Navegar.aspx?y=2025&ap=Proyecto"
@@ -17,28 +17,43 @@ URL = (
 
 def format_soles(txt):
     try:
-        num = float(txt.replace('S/.','').replace(',','').strip())
+        num = float(txt.replace('S/.','').replace(',', '').strip())
     except:
         num = 0
     return f"S/. {num:,.2f}"
 
 def main():
-    # 2) Petición y parseo
+    # 1) Hacer GET y parsear
     r = requests.get(URL)
     soup = BeautifulSoup(r.text, 'html.parser')
     table = soup.select_one('table.Data')
-    rows = []
+    if not table:
+        print("❌ No se encontró la tabla.Data")
+        return
 
-    # 3) Recorre filas válidas
-    for idx, tr in enumerate(table.select('tr:not(.More)'), start=1):
+    filas = table.select('tr:not(.More)')
+    salida = []
+
+    for idx, tr in enumerate(filas, start=1):
         tds = tr.find_all('td')
+        # si no hay suficientes columnas, saltamos
         if len(tds) < 10:
             continue
-        code, name = tds[1].get_text(strip=True).split(':',1)
-        rows.append({
+
+        raw = tds[1].get_text(strip=True)
+        # parche: si no hay ':' en raw, saltamos esta fila
+        if ':' not in raw:
+            continue
+
+        code, name = raw.split(':', 1)
+        code = code.strip()
+        name = name.strip()
+
+        # añadimos el objeto formateado
+        salida.append({
             'ítem': idx,
-            'código': code.strip(),
-            'nombre': name.strip(),
+            'código': code,
+            'nombre': name,
             'PIA': format_soles(tds[2].get_text()),
             'PIM': format_soles(tds[3].get_text()),
             'Certificación': format_soles(tds[4].get_text()),
@@ -49,9 +64,10 @@ def main():
             'Avance': tds[9].get_text(strip=True) + '%'
         })
 
-    # 4) Vuelca a data.json
-    with open('data.json','w',encoding='utf-8') as f:
-        json.dump(rows, f, ensure_ascii=False, indent=2)
+    # 3) Volcar JSON
+    with open('data.json', 'w', encoding='utf-8') as f:
+        json.dump(salida, f, ensure_ascii=False, indent=2)
+    print(f"✅ data.json generado con {len(salida)} registros")
 
-if __name__=='__main__':
+if __name__ == '__main__':
     main()
