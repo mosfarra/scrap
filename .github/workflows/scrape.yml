@@ -1,16 +1,25 @@
 name: Scrape MEF y actualizar data.json
 
+# Le damos permiso al token de escritura en contenidos
+permissions:
+  contents: write
+
 on:
   schedule:
     - cron: '0 * * * *'      # cada hora
-  workflow_dispatch:         # permite dispararlo manualmente
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
+    - name: Checkout repo
+      uses: actions/checkout@v3
+      with:
+        # Persistimos el GITHUB_TOKEN para git push
+        persist-credentials: true
+        fetch-depth: 0
 
     - name: Configurar Python
       uses: actions/setup-python@v4
@@ -28,5 +37,10 @@ jobs:
         git config user.name "github-actions"
         git config user.email "actions@github.com"
         git add data.json
-        git commit -m "Actualiza data.json $(date -u)" || echo "Sin cambios"
-        git push
+        # Solo commitea si hay cambios
+        if ! git diff --cached --quiet; then
+          git commit -m "Actualiza data.json $(date -u)"
+          git push
+        else
+          echo "No hay cambios en data.json"
+        fi
