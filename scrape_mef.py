@@ -3,7 +3,6 @@ import requests
 from bs4 import BeautifulSoup
 import json
 
-# URL final ya con todos los filtros
 URL = (
     "https://apps5.mineco.gob.pe/transparencia/Navegador/"
     "Navegar.aspx?y=2025&ap=Proyecto"
@@ -17,39 +16,40 @@ URL = (
 
 def format_soles(txt):
     try:
-        num = float(txt.replace('S/.','').replace(',', '').strip())
+        num = float(txt.replace('S/.','').replace(',','').strip())
     except:
         num = 0
     return f"S/. {num:,.2f}"
 
 def main():
-    # 1) Hacer GET y parsear
+    print("🔍 Haciendo GET a:", URL)
     r = requests.get(URL)
+    print(f"📄 HTML recibido ({len(r.text)} bytes)")
+
     soup = BeautifulSoup(r.text, 'html.parser')
     table = soup.select_one('table.Data')
     if not table:
-        print("❌ No se encontró la tabla.Data")
+        print("❌ NO se encontró <table class=\"Data\"> en el HTML.")
         return
 
     filas = table.select('tr:not(.More)')
-    salida = []
+    print(f"✅ Encontradas {len(filas)} filas totales (incluye cabeceras).")
 
+    salida = []
     for idx, tr in enumerate(filas, start=1):
         tds = tr.find_all('td')
-        # si no hay suficientes columnas, saltamos
         if len(tds) < 10:
+            print(f"  – Fila {idx} descartada (solo {len(tds)} celdas).")
             continue
 
         raw = tds[1].get_text(strip=True)
-        # parche: si no hay ':' en raw, saltamos esta fila
         if ':' not in raw:
+            print(f"  – Fila {idx} descartada (no contiene ':'): “{raw}”")
             continue
 
         code, name = raw.split(':', 1)
         code = code.strip()
         name = name.strip()
-
-        # añadimos el objeto formateado
         salida.append({
             'ítem': idx,
             'código': code,
@@ -64,10 +64,11 @@ def main():
             'Avance': tds[9].get_text(strip=True) + '%'
         })
 
-    # 3) Volcar JSON
-    with open('data.json', 'w', encoding='utf-8') as f:
+    print(f"🔢 Filas válidas procesadas: {len(salida)}")
+    print("💾 Escribiendo data.json…")
+    with open('data.json','w',encoding='utf-8') as f:
         json.dump(salida, f, ensure_ascii=False, indent=2)
-    print(f"✅ data.json generado con {len(salida)} registros")
+    print("✔️ data.json actualizado correctamente")
 
-if __name__ == '__main__':
+if __name__=='__main__':
     main()
